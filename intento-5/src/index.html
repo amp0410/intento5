@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #c9c2bb;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0095a9;
+      font-size: 36px;
+      margin-top: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #d48cc7;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    .container {
+      width: 80%;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .form-container {
+      position: relative;
+      z-index: 1;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    .form-container input {
+      display: block;
+      width: 100%;
+      height: 40px;
+      border: 1px solid #d48cc7;
+      border-radius: 5px;
+      margin-bottom: 10px;
+      padding-left: 10px;
+    }
+
+    .form-container button {
+      display: block;
+      width: 100%;
+      height: 40px;
+      border: none;
+      border-radius: 5px;
+      background-color: #0095a9;
+      color: white;
+      font-weight: bold;
+    }
+
+    .form-container p {
+      text-align: center;
+      color: red;
+    }
+
+    .grid-container {
+      position: absolute;
+      top: -100%;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding-top: 20px;
+    }
+
+    .grid-container h3 {
+      text-align: center;
+    }
+
+    .grid-container table {
+      width: 100%;
+    }
+
+    .grid-container td {
+      width: 10%;
+      height: 40px;
+    }
+
+    .grid-container td button {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 5px;
+      background-color: #d48cc7;
+      color: white;
+      font-weight: bold;
+    }
+
+    .grid-container td button:hover {
+      transform: scale(1.1);
+    }
+
+    .grid-container td button.winner {
+      background-color: #0095a9;
+    }
+
+    .grid-container td button.loser {
+      background-color: #FF6C0E;
+    }
+
+    @keyframes slide-down {
+      from {
+        top: -100%;
+      }
+
+      to {
+        top: 0;
+      }
+    }
+
+    @keyframes slide-up {
+      from {
+        top: 0;
+      }
+
+      to {
+        top: -100%;
+      }
+    }
+  </style>
+  <script>
+    // Obtener los elementos del DOM
+    const form = document.getElementById("form");
+    const name = document.getElementById("name");
+    const email = document.getElementById("email");
+    const submit = document.getElementById("submit");
+    const message = document.getElementById("message");
+    const grid = document.getElementById("grid");
+    const status = document.getElementById("status");
+    // Variables globales
+    let chances = 3; // Oportunidades del jugador
+    let winner = false; // Si el jugador ha ganado o no
+    let registered = false; // Si el jugador se ha registrado o no
+    let data = []; // Array para guardar los datos del CSV
+    // Función para leer el archivo CSV
+    function readCSV() {
+      // Crear un objeto XMLHttpRequest
+      let xhr = new XMLHttpRequest();
+      // Abrir el archivo CSV con el método GET
+      xhr.open("GET", "data.csv", true);
+      // Enviar la solicitud
+      xhr.send();
+      // Escuchar el evento de carga
+      xhr.onload = function() {
+        // Si la respuesta es exitosa
+        if (this.status == 200) {
+          // Convertir la respuesta en un array de líneas
+          let lines = this.responseText.split("\n");
+          // Recorrer cada línea
+          for (let i = 0; i < lines.length; i++) {
+            // Convertir la línea en un array de valores separados por coma
+            let values = lines[i].split(",");
+            // Agregar el array de valores al array de datos
+            data.push(values);
+          }
+        }
+      };
+    }
+    // Función para escribir el archivo CSV
+    function writeCSV() {
+      // Crear un objeto XMLHttpRequest
+      let xhr = new XMLHttpRequest();
+      // Abrir el archivo CSV con el método POST
+      xhr.open("POST", "data.csv", true);
+      // Enviar la solicitud con los datos actualizados
+      xhr.send(data.join("\n"));
+    }
+    // Función para validar si el jugador ya participó o no
+    function validatePlayer() {
+      // Obtener el nombre y el correo del jugador
+      let playerName = name.value;
+      let playerEmail = email.value;
+      // Recorrer el array de datos
+      for (let i = 0; i < data.length; i++) {
+        // Si el nombre y el correo coinciden con algún registro
+        if (playerName == data[i][0] && playerEmail == data[i][1]) {
+          // Retornar verdadero
+          return true;
+        }
+      }
+      // Si no hay coincidencias, retornar falso
+      return false;
+    }
+    // Función para registrar al jugador en el archivo CSV
+    function registerPlayer() {
+      // Obtener el nombre y el correo del jugador
+      let playerName = name.value;
+      let playerEmail = email.value;
+      // Crear un array con los valores del jugador
+      let playerData = [playerName, playerEmail, "No", "No"];
+      // Agregar el array al array de datos
+      data.push(playerData);
+      // Escribir el archivo CSV con los datos actualizados
+      writeCSV();
+    }
+    // Función para crear el juego
+    function createGame() {
+      // Obtener todos los botones de la cuadrícula
+      let buttons = grid.getElementsByTagName("button");
+      // Recorrer cada botón
+      for (let i = 0; i < buttons.length; i++) {
+        // Escuchar el evento de clic
+        buttons[i].addEventListener("click", function() {
+          // Si el jugador tiene oportunidades y no ha ganado
+          if (chances > 0 && !winner) {
+            // Generar un número aleatorio entre 0 y 100
+            let random = Math.floor(Math.random() * 100);
+            // Si el número es menor que 5 (5% de probabilidad)
+            if (random < 5) {
+              // Cambiar el texto del botón a "Ganaste"
+              this.textContent = "Ganaste";
+              // Cambiar el color del botón a verde
+              this.classList.add("winner");
+              // Cambiar el estado del jugador a ganador
+              winner = true;
+              // Actualizar el estado del jugador en el archivo CSV
+              updatePlayer();
+              // Mostrar un mensaje de felicitación
+              status.textContent = "¡Felicidades! Has encontrado el premio.";
+            } else {
+              // Cambiar el texto del botón a "Perdiste"
+              this.textContent = "Perdiste";
+              // Cambiar el color del botón a rojo
+              this.classList.add("loser");
+              // Reducir las oportunidades del jugador en uno
+              chances--;
+              // Si el jugador se quedó sin oportunidades
+              if (chances == 0) {
+                // Actualizar el estado del jugador en el archivo CSV
+                updatePlayer();
+                // Mostrar un mensaje de consuelo
+                status.textContent = "Lo siento, has perdido todas tus oportunidades.";
+              } else {
+                // Mostrar las oportunidades restantes del jugador
+                status.textContent = "Tienes " + chances + " oportunidades";
+              }
+            }
+          }
+        });
+      }
+    }
+    // Leer el archivo CSV al cargar la página
+    readCSV();
+    // Escuchar el evento de envío del formulario
+    form.addEventListener("submit", function(event) {
+      // Prevenir el comportamiento por defecto del formulario
+      event.preventDefault();
+      // Si el jugador no se ha registrado
+      if (!registered) {
+        // Validar si el jugador ya participó o no
+        let participated = validatePlayer();
+        // Si el jugador ya participó
+        if (participated) {
+          // Mostrar un mensaje de error
+          message.textContent = "Ya participaste y no puedes volver a participar.";
+        } else {
+          // Registrar al jugador en el archivo CSV
+          registerPlayer();
+          // Cambiar el estado del jugador a registrado
+          registered = true;
+          // Ocultar el mensaje de error si hay alguno
+          message.textContent = "";
+          // Crear el juego
+          createGame();
+          // Animar la transición entre el formulario y la cuadrícula
+          formContainer.style.animation = "slide-up 1s forwards";
+          gridContainer.style.animation = "slide-down 1s forwards";
+        }
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <div class="container">
+    <h1>¡Encuentra el premio!</h1>
+    <h2>Encuentra el cuadro ganador, tienes 3 oportunidades, haz clic en cualquier cuadrado para empezar.</h2>
+    <div class="form-container">
+      <form id="form">
+        <input type="text" id="name" name="name" placeholder="Nombre" required>
+        <input type="email" id="email" name="email" placeholder="Correo electrónico" required>
+        <button type="submit" id="submit">Registrarse</button>
+        <p id="message"></p>
+      </form>
+    </div>
+    <div class="grid-container">
+      <h3 id="status">Tienes 3 oportunidades</h3>
+      <table id="grid">
+        <tr>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+        </tr>
+        <tr>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+        </tr>
+        <tr>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+        </tr>
+        <tr>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+          <td><button></button></td>
+        </tr>
+        <!-- Repetir lo mismo para las otras 7 filas -->
+      </table>
+    </div>
+  </div>
+</body>
+
+</html>
